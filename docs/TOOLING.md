@@ -10,8 +10,7 @@ invokes these recipes rather than reproducing their logic:
 
 ## Rust tooling
 
-The tooling specification assigns these responsibilities to the Rust
-workspace:
+The Rust workspace uses:
 
 - `rustfmt` for formatting.
 - `clippy` for lints, with unsafe code forbidden by default.

@@ -19,6 +19,7 @@ is first published, as stated in `LICENSE`.
 
 ## Release requirements
 
-Release automation follows the build and release specification. A promoted
-release includes signed artifacts, checksums, provenance, dependency
-identifiers, and verification evidence for every supported target.
+A promoted release includes signed artifacts, checksums, provenance, dependency
+identifiers, and verification evidence for every supported target. Release
+automation must fail rather than publish an artifact missing any required
+integrity material.
