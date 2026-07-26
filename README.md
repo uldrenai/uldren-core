@@ -15,10 +15,10 @@ Kotlin bindings are generated. Runtime concerns such as logging, credentials,
 filesystem access, networking, telemetry, and updates enter the core only
 through injected trait contracts.
 
-The normative design lives in the Uldren specifications repository
-(`uldren-specs`); see documents 0001 (repository architecture), 0003 (runtime
-and native boundaries), 0009 (quality and compatibility), and 0011 (static
-analysis and developer tooling).
+Core must remain deterministic and independently testable without an
+application runtime. Public contracts, generated bindings, conformance data,
+and their tests change together. Platform implementations belong in consumer
+repositories.
 
 ## Repository map
 
@@ -29,7 +29,8 @@ analysis and developer tooling).
 - `tests/` - repository-level contract, conformance, integration, security,
   and fixture suites.
 
-Specification 0001 defines the authoritative workspace and crate boundaries.
+Workspace manifests define the authoritative crate membership and dependency
+boundaries.
 
 ## Prerequisites
 
