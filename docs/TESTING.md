@@ -12,7 +12,8 @@ Uldren Core uses native Rust test runners with the following required layers:
 
 ## Running
 
-- `just ci` runs formatting checks, a workspace check across all targets, and workspace tests.
+- `just ci` runs formatting checks, Clippy with warnings denied, and workspace tests.
+- `just coverage` produces workspace coverage and enforces the configured floor.
 - `just test-integration` runs the crate integration tests; if no crate integration target is
   present, the recipe exits successfully.
 

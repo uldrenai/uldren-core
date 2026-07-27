@@ -4,6 +4,7 @@
 
 - `just` for the root command interface.
 - The Rust toolchain pinned by `rust-toolchain.toml` (edition 2024, Rust 1.97).
+- Deno for Markdown formatting checks.
 
 ## Getting started
 
@@ -12,8 +13,9 @@ just --list
 just ci
 ```
 
-`just ci` is the non-mutating gate: it runs formatting checks, a workspace check across all targets,
-and workspace tests.
+`just ci` is the non-mutating gate: it runs formatting checks, Clippy with warnings denied, and
+workspace tests. Coverage, dependency policy, and public-surface compatibility run through the
+explicit `just coverage`, `just deny`, and `just semver` recipes.
 
 ## Change flow
 
