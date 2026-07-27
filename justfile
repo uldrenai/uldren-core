@@ -9,11 +9,13 @@ all: ci test-integration
 fmt:
     deno fmt
     deno fmt --ext md NOTICE
+    deno run --frozen --allow-read --allow-write scripts/format-json.ts write
     test ! -f Cargo.toml || cargo fmt --all
 
 fmt-check:
     deno fmt --check
     deno fmt --check --ext md NOTICE
+    deno run --frozen --allow-read scripts/format-json.ts check
     test ! -f Cargo.toml || cargo fmt --all --check
 
 test-integration:
