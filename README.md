@@ -1,24 +1,20 @@
 # Uldren Core
 
-Uldren Core is the environment-agnostic Rust foundation of Uldren. It owns the
-domain model, use-case services, provider contracts, and canonical UniFFI
-definition shared by desktop and mobile applications. It contains no user
-interface and does not depend on Electron, Node.js, React, React Native,
-browser APIs, mobile SDKs, operating-system credential stores, or packaging
-systems.
+Uldren Core is the environment-agnostic Rust foundation of Uldren. It owns the domain model,
+use-case services, provider contracts, and canonical UniFFI definition shared by desktop and mobile
+applications. It contains no user interface and does not depend on Electron, Node.js, React, React
+Native, browser APIs, mobile SDKs, operating-system credential stores, or packaging systems.
 
 ## Architecture
 
-Uldren Core owns environment-independent domain types, services, use cases, and
-provider contracts, plus the canonical UniFFI surface from which Swift and
-Kotlin bindings are generated. Runtime concerns such as logging, credentials,
-filesystem access, networking, telemetry, and updates enter the core only
-through injected trait contracts.
+Uldren Core owns environment-independent domain types, services, use cases, and provider contracts,
+plus the canonical UniFFI surface from which Swift and Kotlin bindings are generated. Runtime
+concerns such as logging, credentials, filesystem access, networking, telemetry, and updates enter
+the core only through injected trait contracts.
 
-Core must remain deterministic and independently testable without an
-application runtime. Public contracts, generated bindings, conformance data,
-and their tests change together. Platform implementations belong in consumer
-repositories.
+Core must remain deterministic and independently testable without an application runtime. Public
+contracts, generated bindings, conformance data, and their tests change together. Platform
+implementations belong in consumer repositories.
 
 ## Repository map
 
@@ -26,17 +22,15 @@ repositories.
 - `justfile` - the root command interface (see Commands).
 - `docs/` - development, testing, tooling, and release documentation.
 - `crates/` - Rust crates organized by domain and boundary.
-- `tests/` - repository-level contract, conformance, integration, security,
-  and fixture suites.
+- `tests/` - repository-level contract, conformance, integration, security, and fixture suites.
 
-Workspace manifests define the authoritative crate membership and dependency
-boundaries.
+Workspace manifests define the authoritative crate membership and dependency boundaries.
 
 ## Prerequisites
 
 - `just`, the command runner.
-- The Rust toolchain pinned by `rust-toolchain.toml` when building a checkout
-  containing `Cargo.toml`.
+- The Rust toolchain pinned by `rust-toolchain.toml` when building a checkout containing
+  `Cargo.toml`.
 
 ## Bootstrap
 
@@ -48,8 +42,8 @@ just --list
 
 ## Commands
 
-The root `just` interface is the stable entry point; continuous integration
-invokes the same recipes rather than duplicating their logic.
+The root `just` interface is the stable entry point; continuous integration invokes the same recipes
+rather than duplicating their logic.
 
 - `just all` — `ci` plus expensive local diagnostics.
 - `just ci` — non-mutating pull-request gate.
@@ -57,16 +51,15 @@ invokes the same recipes rather than duplicating their logic.
 - `just fmt` — apply formatting.
 - `just test-integration` — cross-boundary integration tests.
 
-The recipes activate Rust commands when `Cargo.toml` is present. This keeps the
-root interface valid for repository-only changes and complete Rust workspaces.
+The recipes activate Rust commands when `Cargo.toml` is present. This keeps the root interface valid
+for repository-only changes and complete Rust workspaces.
 
 ## Licensing and contributions
 
-Uldren Core is licensed under the Business Source License 1.1 with an Apache-2.0
-change license; see `LICENSE`. Repository contribution terms govern any
-accepted external contribution.
+Uldren Core is licensed under the Business Source License 1.1 with an Apache-2.0 change license; see
+`LICENSE`. Repository contribution terms govern any accepted external contribution.
 
 ## Security
 
-Report suspected vulnerabilities as described in `SECURITY.md`. Do not open
-public issues for security reports.
+Report suspected vulnerabilities as described in `SECURITY.md`. Do not open public issues for
+security reports.
