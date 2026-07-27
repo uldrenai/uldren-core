@@ -1,0 +1,22 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/domain",
+    "crates/contracts",
+    "crates/services",
+    "crates/persistence",
+    "crates/security",
+    "crates/synchronization",
+    "crates/uniffi",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97"
+authors = ["Uldren Technologies LLC"]
+repository = "https://github.com/uldrenai/uldren-core"
+license-file = "LICENSE"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

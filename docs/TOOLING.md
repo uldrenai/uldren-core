@@ -20,7 +20,9 @@ The Rust workspace uses:
 - `cargo-fuzz` for scheduled fuzzing.
 
 Configuration files are authoritative for enabled tools. The Rust edition and minimum supported
-version remain identical across Cargo, `rustfmt`, `clippy`, the toolchain file, and CI.
+version remain identical across Cargo, `rustfmt`, `clippy`, the toolchain file, and CI. The
+workspace uses resolver 3 and edition 2024, forbids unsafe code through workspace lints, and marks
+every crate `publish = false`.
 
 ## Markdown tooling
 

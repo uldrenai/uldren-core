@@ -12,11 +12,9 @@ Uldren Core uses native Rust test runners with the following required layers:
 
 ## Running
 
-- `just test-integration` runs cross-boundary integration tests.
-- `just ci` runs the non-mutating checks that gate a pull request.
-
-Recipes activate Cargo tests when `Cargo.toml` is present. Coverage floors and non-regression
-ratchets are enforced by the committed coverage configuration.
+- `just ci` runs formatting checks, a workspace check across all targets, and workspace tests.
+- `just test-integration` runs the crate integration tests; if no crate integration target is
+  present, the recipe exits successfully.
 
 ## Review focus
 
