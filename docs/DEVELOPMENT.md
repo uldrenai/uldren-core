@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - `just` for the root command interface.
-- The Rust toolchain pinned by `rust-toolchain.toml` for checkouts containing a Cargo workspace.
+- The Rust toolchain pinned by `rust-toolchain.toml` (edition 2024, Rust 1.97).
 
 ## Getting started
 
@@ -12,8 +12,8 @@ just --list
 just ci
 ```
 
-`just ci` is the non-mutating gate. Recipes activate their Rust commands when `Cargo.toml` is
-present.
+`just ci` is the non-mutating gate: it runs formatting checks, a workspace check across all targets,
+and workspace tests.
 
 ## Change flow
 

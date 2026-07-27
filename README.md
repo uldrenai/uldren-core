@@ -18,19 +18,21 @@ implementations belong in consumer repositories.
 
 ## Repository map
 
-- `LICENSE` - Business Source License 1.1.
+- `Cargo.toml`, `Cargo.lock` - the Rust workspace manifest and locked graph.
+- `rust-toolchain.toml` - the pinned Rust toolchain.
+- `crates/` - the workspace crates: `domain`, `contracts`, `services`, `persistence`, `security`,
+  `synchronization`, and `uniffi`.
 - `justfile` - the root command interface (see Commands).
 - `docs/` - development, testing, tooling, and release documentation.
-- `crates/` - Rust crates organized by domain and boundary.
-- `tests/` - repository-level contract, conformance, integration, security, and fixture suites.
+- `LICENSE`, `NOTICE`, `PROVENANCE.md` - licensing and provenance.
 
-Workspace manifests define the authoritative crate membership and dependency boundaries.
+The root workspace manifest defines the authoritative crate membership, shared package metadata, and
+lints.
 
 ## Prerequisites
 
 - `just`, the command runner.
-- The Rust toolchain pinned by `rust-toolchain.toml` when building a checkout containing
-  `Cargo.toml`.
+- The Rust toolchain pinned by `rust-toolchain.toml` (edition 2024, Rust 1.97).
 
 ## Bootstrap
 
@@ -45,14 +47,13 @@ just --list
 The root `just` interface is the stable entry point; continuous integration invokes the same recipes
 rather than duplicating their logic.
 
-- `just all` — `ci` plus expensive local diagnostics.
-- `just ci` — non-mutating pull-request gate.
-- `just fmt-check` — verify formatting without modifying files.
-- `just fmt` — apply formatting.
-- `just test-integration` — cross-boundary integration tests.
+- `just all` - `ci` plus expensive local diagnostics.
+- `just ci` - non-mutating pull-request gate.
+- `just fmt-check` - verify formatting without modifying files.
+- `just fmt` - apply formatting.
+- `just test-integration` - cross-boundary integration tests.
 
-The recipes activate Rust commands when `Cargo.toml` is present. This keeps the root interface valid
-for repository-only changes and complete Rust workspaces.
+`just ci` runs formatting checks, a workspace check across all targets, and workspace tests.
 
 ## Licensing and contributions
 
