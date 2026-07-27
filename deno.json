@@ -1,7 +1,8 @@
 {
   "fmt": {
-    "include": ["**/*.md", "NOTICE"],
+    "include": ["**/*.md", "NOTICE", "scripts/**/*.ts"],
     "lineWidth": 100,
     "proseWrap": "always"
-  }
+  },
+  "imports": { "prettier-plugin-jsdoc": "npm:prettier-plugin-jsdoc@1.8.1" }
 }
