@@ -51,16 +51,35 @@ interface CoverageFile {
 }
 
 export class CoverageArtifacts {
-  static executables(output: string): string[] {
-    const executables = new Set<string>();
-    for (const line of output.split("\n")) {
-      if (!line.startsWith("{")) continue;
-      const artifact = JSON.parse(line);
-      if (artifact.reason !== "compiler-artifact" || !artifact.profile?.test) continue;
-      if (typeof artifact.executable === "string") executables.add(artifact.executable);
+  readonly pattern: RegExp;
+
+  constructor(targets: string[]) {
+    if (!targets.length || targets.some((name) => !/^[A-Za-z0-9_-]+$/.test(name))) {
+      throw new Error("invalid Cargo coverage target names");
     }
-    if (!executables.size) throw new Error("no instrumented test executables reported by Cargo");
-    return [...executables].sort();
+    this.pattern = new RegExp(
+      `^(${targets.map((name) => name.replaceAll("-", "[-_]")).join("|")})(-[0-9a-f]+)?(\\.exe)?$`,
+    );
+  }
+
+  async find(directory: string): Promise<string[]> {
+    const binaries: string[] = [];
+    for await (const entry of Deno.readDir(directory)) {
+      const path = `${directory}/${entry.name}`;
+      if (
+        entry.isDirectory && !["incremental", ".fingerprint", "fingerprint"].includes(entry.name)
+      ) {
+        binaries.push(...await this.find(path));
+      } else if (entry.isFile && this.pattern.test(entry.name)) {
+        const metadata = await Deno.stat(path);
+        if (
+          Deno.build.os === "windows" ? entry.name.endsWith(".exe") : (metadata.mode! & 0o111) !== 0
+        ) {
+          binaries.push(path);
+        }
+      }
+    }
+    return binaries.sort();
   }
 }
 
@@ -173,9 +192,11 @@ export class QualityTools {
     await Deno.mkdir("target/quality", { recursive: true });
     const previous = Deno.env.get("RUSTUP_TOOLCHAIN");
     const previousTarget = Deno.env.get("CARGO_LLVM_COV_TARGET_DIR");
+    const previousBuild = Deno.env.get("CARGO_LLVM_COV_BUILD_DIR");
     Deno.env.set("RUSTUP_TOOLCHAIN", this.config.nightly);
     const target = `${Deno.cwd()}/target/quality/coverage-build`;
     Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", target);
+    Deno.env.set("CARGO_LLVM_COV_BUILD_DIR", target);
     try {
       await this.tool("cargo-llvm-cov", ["clean", "--workspace"]);
       await this.tool("cargo-llvm-cov", [
@@ -184,33 +205,50 @@ export class QualityTools {
         "tests/contract/production-adapters/Cargo.toml",
         "--workspace",
       ]);
-      const workspace = await this.tool("cargo-llvm-cov", [
+      await this.tool("cargo-llvm-cov", [
         "--workspace",
         "--all-features",
         "--locked",
         "--branch",
         "--no-report",
-        "--message-format=json",
-      ], true);
-      const consumer = await this.tool("cargo-llvm-cov", [
+      ]);
+      await this.tool("cargo-llvm-cov", [
         "--manifest-path",
         "tests/contract/production-adapters/Cargo.toml",
         "--locked",
         "--branch",
         "--no-rustc-wrapper",
         "--no-report",
-        "--message-format=json",
-      ], true);
-      const binaries = [
-        ...CoverageArtifacts.executables(workspace),
-        ...CoverageArtifacts.executables(consumer),
-      ];
+      ]);
+      const binaries: string[] = [];
+      for (const manifest of ["Cargo.toml", "tests/contract/production-adapters/Cargo.toml"]) {
+        const metadata = JSON.parse(
+          await this.runner.run([
+            "cargo",
+            "metadata",
+            "--manifest-path",
+            manifest,
+            "--no-deps",
+            "--format-version",
+            "1",
+            "--locked",
+          ], true),
+        );
+        const targets = metadata.packages.flatMap((pkg: { targets: { name: string }[] }) =>
+          pkg.targets.map((item) => item.name)
+        );
+        const found = await new CoverageArtifacts(targets).find(target);
+        if (!found.length) throw new Error(`no instrumented test executables: ${manifest}`);
+        binaries.push(...found);
+      }
       await this.exportCoverage(target, binaries);
     } finally {
       if (previous === undefined) Deno.env.delete("RUSTUP_TOOLCHAIN");
       else Deno.env.set("RUSTUP_TOOLCHAIN", previous);
       if (previousTarget === undefined) Deno.env.delete("CARGO_LLVM_COV_TARGET_DIR");
       else Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", previousTarget);
+      if (previousBuild === undefined) Deno.env.delete("CARGO_LLVM_COV_BUILD_DIR");
+      else Deno.env.set("CARGO_LLVM_COV_BUILD_DIR", previousBuild);
     }
     const report = JSON.parse(await Deno.readTextFile("target/quality/coverage.json"));
     new CoverageGate(this.config.coverage, this.config.nonExecutableCrates).check(

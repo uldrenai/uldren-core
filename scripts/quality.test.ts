@@ -57,27 +57,23 @@ Deno.test("branchless components are explicit without accepting missing instrume
   rejects(() => gate.check([file(100, 84), security]), "domain branches");
 });
 
-Deno.test("Cargo coverage artifacts preserve exact executable paths and reject empty builds", () => {
-  const artifact = {
-    reason: "compiler-artifact",
-    profile: { test: true },
-    executable: "/workspace with spaces/target/test-bin",
-  };
-  const output = [
-    JSON.stringify(artifact),
-    "running 3 tests",
-    JSON.stringify({ ...artifact, executable: null }),
-    JSON.stringify({ ...artifact, profile: { test: false }, executable: "/not-a-test" }),
-    JSON.stringify(artifact),
-  ].join("\n");
-  const binaries = CoverageArtifacts.executables(output);
-  if (binaries.length !== 1 || binaries[0] !== artifact.executable) {
-    throw new Error("Cargo executable identity was changed");
+Deno.test("coverage binary selection accepts only exact Cargo targets", () => {
+  const artifacts = new CoverageArtifacts(["uldren-core-contracts", "adapter_tests"]);
+  for (const name of ["uldren_core_contracts-a1b2", "adapter_tests-123.exe", "adapter_tests"]) {
+    if (!artifacts.pattern.test(name)) throw new Error(`valid target rejected: ${name}`);
   }
-  rejects(
-    () => CoverageArtifacts.executables("test result: ok"),
-    "no instrumented test executables",
-  );
+  for (
+    const name of [
+      "libuldren_core_contracts.rlib",
+      "adapter_tests-123.d",
+      "unrelated-abc",
+      "adapter_tests_extra",
+    ]
+  ) {
+    if (artifacts.pattern.test(name)) throw new Error(`unrelated artifact accepted: ${name}`);
+  }
+  rejects(() => new CoverageArtifacts([]), "invalid Cargo coverage target");
+  rejects(() => new CoverageArtifacts(["invalid.*"]), "invalid Cargo coverage target");
 });
 
 class RecordingRunner implements CommandRunner {
