@@ -174,7 +174,6 @@ export class QualityTools {
       await this.tool("cargo-llvm-cov", [
         "report",
         "--branch",
-        "--all-features",
         "--json",
         "--output-path",
         "target/quality/coverage.json",
