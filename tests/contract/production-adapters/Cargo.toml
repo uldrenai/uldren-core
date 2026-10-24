@@ -1,0 +1,21 @@
+[package]
+name = "uldren-core-production-adapter-tests"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97"
+publish = false
+
+[workspace]
+resolver = "3"
+
+[lib]
+path = "adapters.rs"
+
+[dependencies]
+uldren-core-contracts = { path = "../../../crates/contracts" }
+uldren-core-domain = { path = "../../../crates/domain" }
+uldren-core-persistence = { path = "../../../crates/persistence" }
+uldren-core-synchronization = { path = "../../../crates/synchronization" }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -10,3 +10,10 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+uldren-core-contracts = { path = "../contracts" }
+uldren-core-domain = { path = "../domain" }
+
+[features]
+test-support = []

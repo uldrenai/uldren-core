@@ -13,6 +13,10 @@ Uldren Core uses native Rust test runners with the following required layers:
 ## Running
 
 - `just ci` runs formatting checks, a workspace check across all targets, and workspace tests.
+- `just ci` also runs `tests/contract/production-adapters` as an isolated Cargo workspace with its
+  own committed lockfile. It consumes default production APIs without test-support features, so
+  private module access and workspace development-feature unification cannot conceal unusable
+  adapter interfaces. These in-process tests are part of the fast gate.
 - `just test-integration` runs the crate integration tests; if no crate integration target is
   present, the recipe exits successfully.
 

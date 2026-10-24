@@ -1,3 +1,4 @@
 /target
+/tests/contract/production-adapters/target
 **/*.rs.bk
 .DS_Store

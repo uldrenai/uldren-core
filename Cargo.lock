@@ -9,23 +9,52 @@ version = "0.0.0"
 [[package]]
 name = "uldren-core-domain"
 version = "0.0.0"
+dependencies = [
+ "uldren-core-contracts",
+]
 
 [[package]]
 name = "uldren-core-persistence"
 version = "0.0.0"
+dependencies = [
+ "uldren-core-contracts",
+ "uldren-core-domain",
+]
 
 [[package]]
 name = "uldren-core-security"
 version = "0.0.0"
+dependencies = [
+ "uldren-core-contracts",
+ "uldren-core-domain",
+ "zeroize",
+]
 
 [[package]]
 name = "uldren-core-services"
 version = "0.0.0"
+dependencies = [
+ "uldren-core-contracts",
+ "uldren-core-domain",
+ "uldren-core-persistence",
+ "uldren-core-security",
+ "uldren-core-synchronization",
+]
 
 [[package]]
 name = "uldren-core-synchronization"
 version = "0.0.0"
+dependencies = [
+ "uldren-core-contracts",
+ "uldren-core-domain",
+]
 
 [[package]]
 name = "uldren-core-uniffi"
 version = "0.0.0"
+
+[[package]]
+name = "zeroize"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
