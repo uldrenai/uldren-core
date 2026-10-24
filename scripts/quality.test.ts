@@ -57,6 +57,20 @@ class RecordingRunner implements CommandRunner {
   }
 }
 
+Deno.test("dependency policy selects all manifests and uses the pinned CLI contract", async () => {
+  const runner = new RecordingRunner();
+  runner.version = config.tools["cargo-deny"];
+  await new QualityTools(config, runner).run("deny");
+  const checks = runner.calls.filter((args) => args.includes("check"));
+  if (checks.length !== 3) throw new Error("dependency graph omitted");
+  for (const args of checks) {
+    if (args.indexOf("--config") > args.indexOf("check")) {
+      throw new Error("config must be a global cargo-deny option");
+    }
+    if (!args.includes("--locked")) throw new Error("dependency graph is not locked");
+  }
+});
+
 for (const [tool, version] of Object.entries(config.tools)) {
   Deno.test(`${tool} validates its pin and propagates command failure`, async () => {
     const runner = new RecordingRunner();

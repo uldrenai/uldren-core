@@ -17,6 +17,7 @@ pub trait Entity: fmt::Debug {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod doubles {
     use super::{Entity, EntityId, Revision};
 

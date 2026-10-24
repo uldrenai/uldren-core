@@ -20,6 +20,7 @@ license-file = "LICENSE"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 unreachable_pub = "warn"
 unused_qualifications = "warn"
 rust_2018_idioms = { level = "warn", priority = -1 }

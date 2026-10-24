@@ -5,6 +5,7 @@
 //! feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod entity;
 pub mod identifier;
@@ -17,6 +18,7 @@ pub use revision::Revision;
 const _: Option<&dyn Entity> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::entity::{Entity, FreshEntity, RevisionedEntity};
     use super::identifier::EntityId;

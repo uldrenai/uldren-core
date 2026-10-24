@@ -7,6 +7,7 @@
 //! feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod error;
 pub mod future;
@@ -32,6 +33,7 @@ const _: Option<&dyn Logger> = None;
 const _: Option<&dyn TelemetrySink> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::error::{Category, Error};
     use super::logging::{CountingLogger, LogLevel, LogRecord, Logger, NoopLogger};

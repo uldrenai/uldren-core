@@ -79,6 +79,12 @@ class EnforcementSmoke {
     await Deno.copyFile(`${source}/deny.toml`, policy);
     console.log("PASS: dependency policy rejects a disallowed license");
 
+    const securityManifest = `${checkout}/crates/security/Cargo.toml`;
+    await this.mutate(securityManifest, 'zeroize = "1.8"', 'zeroize = "*"');
+    await this.command(checkout, [deny, "--locked", "check", "bans"], /wildcard dependency/);
+    await Deno.copyFile(`${source}/crates/security/Cargo.toml`, securityManifest);
+    console.log("PASS: registry wildcard dependencies remain forbidden");
+
     const manifest = `${checkout}/crates/contracts/Cargo.toml`;
     const manifestText = await Deno.readTextFile(manifest);
     await Deno.writeTextFile(manifest, `${manifestText}\n[dependencies]\nzeroize = "=1.9.0"\n`);

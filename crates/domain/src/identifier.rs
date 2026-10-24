@@ -115,6 +115,7 @@ fn validate_slug(slug: &str) -> Result<(), Error> {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::EntityId;
     use uldren_core_contracts::Category;

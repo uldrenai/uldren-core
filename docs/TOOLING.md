@@ -57,10 +57,14 @@ The Rust workspace configures:
 - `cargo-machete` for unused dependencies.
 - `cargo-fuzz` for the EntityId parser's grammar and accepted-value round-trip invariants.
 
-The root, isolated consumer, and fuzz dependency graphs all pass cargo-deny. cargo-fuzz does not
-accept `--locked`: the runner first verifies locked offline metadata, runs without network access,
-and rejects any change to its committed lockfile. `just tools-install` fetches that lockfile's
-crates.
+The root, isolated consumer, and fuzz dependency graphs are checked with cargo-deny. The policy
+rejects wildcard registry dependencies. Unpublished workspace path dependencies need no registry
+version; the wildcard exception applies to those source paths, not registry versions. Unknown Git
+sources remain denied.
+
+cargo-fuzz does not accept `--locked`: the runner first verifies locked offline metadata, runs
+without network access, and rejects any change to its committed lockfile. `just tools-install`
+fetches that lockfile's crates.
 
 Configuration files are authoritative for enabled tools. The Rust edition and minimum supported
 version remain identical across Cargo, `rustfmt`, `clippy`, the toolchain file, and CI. The

@@ -146,13 +146,29 @@ export class QualityTools {
   async coverage(): Promise<void> {
     await Deno.mkdir("target/quality", { recursive: true });
     const previous = Deno.env.get("RUSTUP_TOOLCHAIN");
+    const previousTarget = Deno.env.get("CARGO_LLVM_COV_TARGET_DIR");
     Deno.env.set("RUSTUP_TOOLCHAIN", this.config.nightly);
+    Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", `${Deno.cwd()}/target/quality/coverage-build`);
     try {
       await this.tool("cargo-llvm-cov", [
         "--workspace",
         "--all-features",
         "--locked",
         "--branch",
+        "--no-report",
+      ]);
+      await this.tool("cargo-llvm-cov", [
+        "--manifest-path",
+        "tests/contract/production-adapters/Cargo.toml",
+        "--locked",
+        "--branch",
+        "--no-clean",
+        "--no-report",
+      ]);
+      await this.tool("cargo-llvm-cov", [
+        "report",
+        "--branch",
+        "--all-features",
         "--json",
         "--output-path",
         "target/quality/coverage.json",
@@ -160,6 +176,8 @@ export class QualityTools {
     } finally {
       if (previous === undefined) Deno.env.delete("RUSTUP_TOOLCHAIN");
       else Deno.env.set("RUSTUP_TOOLCHAIN", previous);
+      if (previousTarget === undefined) Deno.env.delete("CARGO_LLVM_COV_TARGET_DIR");
+      else Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", previousTarget);
     }
     const report = JSON.parse(await Deno.readTextFile("target/quality/coverage.json"));
     new CoverageGate(this.config.coverage, this.config.nonExecutableCrates).check(
@@ -209,9 +227,9 @@ export class QualityTools {
             "--manifest-path",
             manifest,
             "--locked",
-            "check",
             "--config",
             "deny.toml",
+            "check",
           ]);
         }
         return;

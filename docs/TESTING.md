@@ -18,7 +18,8 @@ Uldren Core uses native Rust test runners with the following required layers:
   own committed lockfile. It consumes default production APIs without test-support features, so
   private module access and workspace development-feature unification cannot conceal unusable
   adapter interfaces. These in-process tests are part of the fast gate.
-- Component coverage includes colocated unit-test code and test-support implementations. It does not
+- Component coverage excludes test modules and test-support implementations through nightly-only
+  coverage attributes and merges workspace and isolated production-consumer execution. It does not
   claim platform, integration, or foreign-language coverage. Domain and security enforce 90% lines
   and 85% branches. Other executable crates enforce an initial measured line floor; branch counts
   are reported without an additional threshold. The type-only UniFFI crate is explicitly exempt

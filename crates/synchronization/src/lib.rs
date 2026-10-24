@@ -6,6 +6,7 @@
 //! `test-support` feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod session;
 pub mod transport;
@@ -22,6 +23,7 @@ const _: Option<&dyn Transport> = None;
 const _: Option<&dyn SessionCoordinator> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::session::{InMemorySessions, NullSessions, SessionCoordinator};
     use super::transport::{

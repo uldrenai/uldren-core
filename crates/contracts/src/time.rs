@@ -31,6 +31,7 @@ pub trait Clock: Send + Sync + fmt::Debug {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod doubles {
     use super::{Clock, UnixNanos};
     use std::sync::atomic::{AtomicU64, Ordering};

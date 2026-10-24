@@ -8,6 +8,7 @@
 //! the non-default `test-support` feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod runtime;
 pub mod service;
@@ -21,6 +22,7 @@ pub use service::{StoreRecordService, UnavailableRecordService};
 const _: Option<&dyn RecordService> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::runtime::RuntimeContext;
     use super::service::{RecordService, StoreRecordService, UnavailableRecordService};

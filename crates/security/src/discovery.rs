@@ -12,6 +12,7 @@ pub trait CapabilityDiscovery: Send + Sync + fmt::Debug {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod doubles {
     use super::{Capability, CapabilityDiscovery, Error};
     use std::collections::BTreeSet;
@@ -57,6 +58,7 @@ mod doubles {
 pub use doubles::{EmptyCapabilities, StaticCapabilities};
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::{Capability, CapabilityDiscovery, EmptyCapabilities, StaticCapabilities};
     use crate::{Authorizer, DenyAll};
