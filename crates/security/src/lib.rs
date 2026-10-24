@@ -52,7 +52,7 @@ mod tests {
         let populated = InMemorySecrets::new().with("signing-key", vec![9, 9, 9]);
         let providers: [Box<dyn SecretProvider>; 2] = [Box::new(populated), Box::new(EmptySecrets)];
         let found = block_on(providers[0].secret(&reference)).expect("secret present");
-        assert_eq!(found.expose(), &[9, 9, 9]);
+        assert!(found.expose() == [9, 9, 9], "unexpected secret contents");
         let missing = block_on(providers[1].secret(&reference)).expect_err("secret absent");
         assert_eq!(missing.category(), Category::NotFound);
     }
@@ -62,13 +62,16 @@ mod tests {
         let reference = SecretRef::new("api-token");
         let provider = InMemorySecrets::new().with("api-token", vec![7, 8, 9]);
         let secret = block_on(provider.secret(&reference)).expect("present");
-        assert_eq!(secret.expose(), &[7, 8, 9]);
+        assert!(secret.expose() == [7, 8, 9], "unexpected secret contents");
         let rendered = format!("{secret:?}");
         assert!(
-            !rendered.contains('7'),
-            "debug must not reveal material: {rendered}"
+            rendered == "Secret { .. }",
+            "secret Debug output must be fully redacted"
         );
-        assert_eq!(format!("{provider:?}"), "InMemorySecrets { .. }");
+        assert!(
+            format!("{provider:?}") == "InMemorySecrets { .. }",
+            "secret provider Debug output must be fully redacted"
+        );
     }
 
     #[test]
@@ -79,8 +82,11 @@ mod tests {
         let provider = provider.with("key", vec![2]);
         let second = block_on(provider.secret(&reference)).expect("second");
         drop(provider);
-        assert_eq!(first.expose(), &[1]);
-        assert_eq!(second.expose(), &[2]);
+        assert!(first.expose() == [1], "original secret contents changed");
+        assert!(
+            second.expose() == [2],
+            "replacement secret contents changed"
+        );
     }
 
     #[test]
