@@ -299,8 +299,9 @@ export class QualityTools {
     const report = await this.runner.run([
       `${llvm}/llvm-cov${suffix}`,
       "export",
+      binaries[0],
       `--instr-profile=${profile}`,
-      ...binaries.map((binary) => `--object=${binary}`),
+      ...binaries.slice(1).map((binary) => `--object=${binary}`),
       ...sources.sort(),
     ], true);
     await Deno.writeTextFile("target/quality/coverage.json", report);
