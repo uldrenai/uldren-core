@@ -29,7 +29,10 @@ mod tests {
     use std::future::Future;
     use std::sync::Arc;
     use std::task::{Context, Poll, Waker};
-    use uldren_core_contracts::{Category, DisabledTelemetry, FixedClock, NoopLogger, UnixNanos};
+    use uldren_core_contracts::{
+        Category, CountingLogger, DisabledTelemetry, FixedClock, LogLevel, LogRecord, NoopLogger,
+        UnixNanos,
+    };
     use uldren_core_domain::{EntityId, Revision};
     use uldren_core_persistence::InMemoryStore;
     use uldren_core_security::{DenyAll, EmptyCapabilities, EmptySecrets};
@@ -105,7 +108,11 @@ mod tests {
             builder = set_provider(builder);
         }
         assert_eq!(format!("{builder:?}"), "RuntimeContextBuilder { .. }");
-        let runtime = builder.build().expect("all providers supplied");
+        let logger = Arc::new(CountingLogger::default());
+        let runtime = builder
+            .logger(logger.clone())
+            .build()
+            .expect("all providers supplied");
         assert_eq!(format!("{runtime:?}"), "RuntimeContext { .. }");
         assert_eq!(runtime.clock().now().as_nanos(), 42);
         assert!(!runtime.telemetry().is_enabled());
@@ -134,9 +141,24 @@ mod tests {
         let peer = uldren_core_synchronization::PeerId::new(subject);
         let session = block_on(runtime.sessions().open(&peer)).expect("open session");
         block_on(runtime.sessions().close(session)).expect("close session");
-        let _ = runtime.transport();
-        let _ = runtime.logger();
-        let _ = runtime.store();
+        block_on(runtime.transport().send(&peer, &[1, 2])).expect("send");
+        assert_eq!(
+            block_on(runtime.transport().receive()).expect("receive"),
+            uldren_core_synchronization::Inbound::Frame {
+                peer: peer.clone(),
+                bytes: vec![1, 2]
+            }
+        );
+        assert_eq!(
+            block_on(runtime.store().load(peer.entity())).expect("load"),
+            None
+        );
+        runtime.logger().log(&LogRecord {
+            level: LogLevel::Info,
+            message: "test",
+            fields: &[],
+        });
+        assert_eq!(logger.count(), 1);
     }
 
     #[test]

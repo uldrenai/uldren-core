@@ -101,6 +101,7 @@ mod tests {
             authorizers[0].authorize(&subject, &capability),
             Decision::Allow
         );
+        assert!(authorizers[0].authorize(&subject, &capability).is_allowed());
         assert_eq!(
             authorizers[1].authorize(&subject, &capability),
             Decision::Deny

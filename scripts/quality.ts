@@ -15,8 +15,12 @@ export class ProcessRunner implements CommandRunner {
     });
     if (capture) {
       const result = await process.output();
-      if (!result.success) throw new Error(`${args[0]} failed (${result.code})`);
-      return new TextDecoder().decode(result.stdout);
+      const output = new TextDecoder().decode(result.stdout);
+      if (!result.success) {
+        console.error(output);
+        throw new Error(`${args[0]} failed (${result.code})`);
+      }
+      return output;
     }
     const status = await process.spawn().status;
     if (!status.success) throw new Error(`${args[0]} failed (${status.code})`);
@@ -44,6 +48,20 @@ interface Metric {
 interface CoverageFile {
   filename: string;
   summary: { lines: Metric; branches: Metric };
+}
+
+export class CoverageArtifacts {
+  static executables(output: string): string[] {
+    const executables = new Set<string>();
+    for (const line of output.split("\n")) {
+      if (!line.startsWith("{")) continue;
+      const artifact = JSON.parse(line);
+      if (artifact.reason !== "compiler-artifact" || !artifact.profile?.test) continue;
+      if (typeof artifact.executable === "string") executables.add(artifact.executable);
+    }
+    if (!executables.size) throw new Error("no instrumented test executables reported by Cargo");
+    return [...executables].sort();
+  }
 }
 
 export class CoverageGate {
@@ -77,6 +95,11 @@ export class CoverageGate {
       }
       totals.set(component, total);
     }
+    if (
+      totals.size > 0 &&
+      Object.values(this.floors).some((floor) => floor.branches > 0) &&
+      [...totals.values()].every((total) => total.branches.count === 0)
+    ) throw new Error("no branch coverage data in instrumented report");
     for (const [component, floor] of Object.entries(this.floors)) {
       const total = totals.get(component);
       if (!total || total.lines.count === 0) throw new Error(`no coverage data: ${component}`);
@@ -85,8 +108,8 @@ export class CoverageGate {
         if (!Number.isFinite(floor[metric]) || floor[metric] < 0 || floor[metric] > 100) {
           throw new Error(`invalid coverage floor: ${component} ${metric}`);
         }
-        if (metric === "branches" && floor.branches > 0 && value.count === 0) {
-          failures.push(`no branch coverage data: ${component}`);
+        if (metric === "branches" && value.count === 0) {
+          console.log(`${component} branches: N/A (no instrumentable branches)`);
           continue;
         }
         const percent = value.count === 0 ? 100 : value.covered * 100 / value.count;
@@ -110,14 +133,14 @@ export class QualityTools {
     this.prefix = Deno.env.get("ULDREN_QUALITY_TOOLS") ?? `${Deno.cwd()}/target/quality-tools`;
   }
 
-  async tool(name: string, args: string[]): Promise<void> {
+  async tool(name: string, args: string[], capture = false): Promise<string> {
     const executable = `${this.prefix}/bin/${name}${Deno.build.os === "windows" ? ".exe" : ""}`;
     const subcommand = name === "cargo-llvm-cov" ? ["llvm-cov"] : [];
     const output = await this.runner.run([executable, ...subcommand, "--version"], true);
     if (output.trim().split(/\s+/).at(-1) !== this.config.tools[name]) {
       throw new Error(`wrong ${name} version; run just tools-install`);
     }
-    await this.runner.run([executable, ...subcommand, ...args]);
+    return await this.runner.run([executable, ...subcommand, ...args], capture);
   }
 
   async install(): Promise<void> {
@@ -151,7 +174,8 @@ export class QualityTools {
     const previous = Deno.env.get("RUSTUP_TOOLCHAIN");
     const previousTarget = Deno.env.get("CARGO_LLVM_COV_TARGET_DIR");
     Deno.env.set("RUSTUP_TOOLCHAIN", this.config.nightly);
-    Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", `${Deno.cwd()}/target/quality/coverage-build`);
+    const target = `${Deno.cwd()}/target/quality/coverage-build`;
+    Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", target);
     try {
       await this.tool("cargo-llvm-cov", ["clean", "--workspace"]);
       await this.tool("cargo-llvm-cov", [
@@ -160,28 +184,28 @@ export class QualityTools {
         "tests/contract/production-adapters/Cargo.toml",
         "--workspace",
       ]);
-      await this.tool("cargo-llvm-cov", [
+      const workspace = await this.tool("cargo-llvm-cov", [
         "--workspace",
         "--all-features",
         "--locked",
         "--branch",
         "--no-report",
-      ]);
-      await this.tool("cargo-llvm-cov", [
+        "--message-format=json",
+      ], true);
+      const consumer = await this.tool("cargo-llvm-cov", [
         "--manifest-path",
         "tests/contract/production-adapters/Cargo.toml",
         "--locked",
         "--branch",
         "--no-rustc-wrapper",
         "--no-report",
-      ]);
-      await this.tool("cargo-llvm-cov", [
-        "report",
-        "--branch",
-        "--json",
-        "--output-path",
-        "target/quality/coverage.json",
-      ]);
+        "--message-format=json",
+      ], true);
+      const binaries = [
+        ...CoverageArtifacts.executables(workspace),
+        ...CoverageArtifacts.executables(consumer),
+      ];
+      await this.exportCoverage(target, binaries);
     } finally {
       if (previous === undefined) Deno.env.delete("RUSTUP_TOOLCHAIN");
       else Deno.env.set("RUSTUP_TOOLCHAIN", previous);
@@ -192,6 +216,56 @@ export class QualityTools {
     new CoverageGate(this.config.coverage, this.config.nonExecutableCrates).check(
       report.data.flatMap((entry: { files: CoverageFile[] }) => entry.files),
     );
+  }
+
+  async sourceFiles(directory: string): Promise<string[]> {
+    const files: string[] = [];
+    for await (const entry of Deno.readDir(directory)) {
+      const path = `${directory}/${entry.name}`;
+      if (entry.isDirectory) files.push(...await this.sourceFiles(path));
+      else if (entry.isFile && entry.name.endsWith(".rs")) files.push(path);
+      else if (entry.isSymlink) throw new Error(`unsupported coverage source link: ${path}`);
+    }
+    return files.sort();
+  }
+
+  async exportCoverage(target: string, binaries: string[]): Promise<void> {
+    const library = (await this.runner.run(["rustc", "--print", "target-libdir"], true)).trim();
+    const llvm = library.replace(/[\\/]lib$/, "/bin");
+    if (llvm === library) throw new Error("unexpected Rust target library directory");
+    const suffix = Deno.build.os === "windows" ? ".exe" : "";
+    const profiles: string[] = [];
+    for await (const entry of Deno.readDir(target)) {
+      if (entry.isFile && entry.name.endsWith(".profraw")) profiles.push(`${target}/${entry.name}`);
+    }
+    if (!profiles.length) throw new Error("no raw coverage profiles");
+    const profile = `${target}/combined.profdata`;
+    await this.runner.run([
+      `${llvm}/llvm-profdata${suffix}`,
+      "merge",
+      "--sparse",
+      "--failure-mode=any",
+      "--output",
+      profile,
+      ...profiles.sort(),
+    ]);
+    const sources: string[] = [];
+    for await (const entry of Deno.readDir("crates")) {
+      if (entry.isDirectory) {
+        sources.push(...await this.sourceFiles(`${Deno.cwd()}/crates/${entry.name}/src`));
+      }
+    }
+    console.log(
+      `Coverage combines ${binaries.length} test executables and ${profiles.length} profiles`,
+    );
+    const report = await this.runner.run([
+      `${llvm}/llvm-cov${suffix}`,
+      "export",
+      `--instr-profile=${profile}`,
+      ...binaries.map((binary) => `--object=${binary}`),
+      ...sources.sort(),
+    ], true);
+    await Deno.writeTextFile("target/quality/coverage.json", report);
   }
 
   async semver(baseline: string): Promise<void> {
@@ -243,7 +317,8 @@ export class QualityTools {
         }
         return;
       case "machete":
-        return await this.tool("cargo-machete", ["."]);
+        await this.tool("cargo-machete", ["."]);
+        return;
       case "semver":
         return await this.semver(argument ?? "origin/main");
       case "smoke-if-changed": {

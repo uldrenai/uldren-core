@@ -1,4 +1,4 @@
-import { type CommandRunner, CoverageGate, QualityTools } from "./quality.ts";
+import { type CommandRunner, CoverageArtifacts, CoverageGate, QualityTools } from "./quality.ts";
 
 const config = JSON.parse(await Deno.readTextFile("tooling/quality.json"));
 
@@ -41,6 +41,42 @@ Deno.test("coverage enforces exact component boundaries", () => {
   rejects(
     () => gate.check([{ ...file(100, 100), filename: "tests/fixture.rs" }]),
     "unexpected coverage source",
+  );
+});
+
+Deno.test("branchless components are explicit without accepting missing instrumentation", () => {
+  const gate = new CoverageGate({
+    domain: { lines: 90, branches: 85 },
+    security: { lines: 90, branches: 85 },
+  }, []);
+  const security = {
+    filename: "crates/security/src/secret.rs",
+    summary: { lines: { count: 10, covered: 10 }, branches: { count: 0, covered: 0 } },
+  };
+  gate.check([file(100, 100), security]);
+  rejects(() => gate.check([file(100, 84), security]), "domain branches");
+});
+
+Deno.test("Cargo coverage artifacts preserve exact executable paths and reject empty builds", () => {
+  const artifact = {
+    reason: "compiler-artifact",
+    profile: { test: true },
+    executable: "/workspace with spaces/target/test-bin",
+  };
+  const output = [
+    JSON.stringify(artifact),
+    "running 3 tests",
+    JSON.stringify({ ...artifact, executable: null }),
+    JSON.stringify({ ...artifact, profile: { test: false }, executable: "/not-a-test" }),
+    JSON.stringify(artifact),
+  ].join("\n");
+  const binaries = CoverageArtifacts.executables(output);
+  if (binaries.length !== 1 || binaries[0] !== artifact.executable) {
+    throw new Error("Cargo executable identity was changed");
+  }
+  rejects(
+    () => CoverageArtifacts.executables("test result: ok"),
+    "no instrumented test executables",
   );
 });
 
