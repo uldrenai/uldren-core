@@ -150,6 +150,13 @@ export class QualityTools {
     Deno.env.set("RUSTUP_TOOLCHAIN", this.config.nightly);
     Deno.env.set("CARGO_LLVM_COV_TARGET_DIR", `${Deno.cwd()}/target/quality/coverage-build`);
     try {
+      await this.tool("cargo-llvm-cov", ["clean", "--workspace"]);
+      await this.tool("cargo-llvm-cov", [
+        "clean",
+        "--manifest-path",
+        "tests/contract/production-adapters/Cargo.toml",
+        "--workspace",
+      ]);
       await this.tool("cargo-llvm-cov", [
         "--workspace",
         "--all-features",
@@ -162,7 +169,6 @@ export class QualityTools {
         "tests/contract/production-adapters/Cargo.toml",
         "--locked",
         "--branch",
-        "--no-clean",
         "--no-report",
       ]);
       await this.tool("cargo-llvm-cov", [
