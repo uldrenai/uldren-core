@@ -15,8 +15,5 @@ uldren-core-domain = { path = "../domain" }
 [lints]
 workspace = true
 
-[dev-dependencies]
-uldren-core-domain = { path = "../domain", features = ["test-support"] }
-
 [features]
 test-support = []

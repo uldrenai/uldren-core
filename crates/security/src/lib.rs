@@ -68,6 +68,19 @@ mod tests {
             !rendered.contains('7'),
             "debug must not reveal material: {rendered}"
         );
+        assert_eq!(format!("{provider:?}"), "InMemorySecrets { .. }");
+    }
+
+    #[test]
+    fn returned_secrets_have_independent_ownership() {
+        let reference = SecretRef::new("key");
+        let provider = InMemorySecrets::new().with("key", vec![1]);
+        let first = block_on(provider.secret(&reference)).expect("first");
+        let provider = provider.with("key", vec![2]);
+        let second = block_on(provider.secret(&reference)).expect("second");
+        drop(provider);
+        assert_eq!(first.expose(), &[1]);
+        assert_eq!(second.expose(), &[2]);
     }
 
     #[test]

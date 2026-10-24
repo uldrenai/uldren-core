@@ -3,6 +3,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 ci: fmt-check
     cargo check --workspace --all-targets --locked
     cargo test --workspace --locked
+    cargo test --manifest-path tests/contract/production-adapters/Cargo.toml --locked
 
 all: ci test-integration
 
@@ -11,12 +12,14 @@ fmt:
     deno fmt --ext md NOTICE
     deno run --frozen --allow-read --allow-write scripts/format-json.ts write
     test ! -f Cargo.toml || cargo fmt --all
+    cargo fmt --manifest-path tests/contract/production-adapters/Cargo.toml
 
 fmt-check:
     deno fmt --check
     deno fmt --check --ext md NOTICE
     deno run --frozen --allow-read scripts/format-json.ts check
     test ! -f Cargo.toml || cargo fmt --all --check
+    cargo fmt --manifest-path tests/contract/production-adapters/Cargo.toml --check
 
 test-integration:
     if [ -n "$(find crates -mindepth 3 -maxdepth 3 -type f -path '*/tests/*.rs' -print -quit 2>/dev/null)" ]; then cargo test --workspace --test '*' --locked; else echo "no crate integration test targets"; fi

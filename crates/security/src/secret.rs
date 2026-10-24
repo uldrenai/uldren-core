@@ -23,9 +23,8 @@ impl SecretRef {
 
 /// Owned secret material.
 ///
-/// The material is not clonable and is zeroized on drop, so copies are not left
-/// in freed memory. [`fmt::Debug`] is fully redacted; read the bytes only
-/// through [`Secret::expose`] and keep the borrow's lifetime short.
+/// This owned buffer is zeroized on drop; independently created copies have
+/// their own lifetimes. [`fmt::Debug`] is redacted.
 ///
 /// ```compile_fail
 /// let _ = uldren_core_security::Secret(vec![1, 2, 3]);
@@ -71,6 +70,7 @@ pub trait SecretProvider: Send + Sync + fmt::Debug {
 mod doubles {
     use super::{Secret, SecretProvider, SecretRef};
     use std::collections::HashMap;
+    use std::fmt;
     use uldren_core_contracts::{BoxFuture, Category, Error};
 
     fn not_found() -> Error {
@@ -78,9 +78,17 @@ mod doubles {
     }
 
     /// In-memory [`SecretProvider`] for tests.
-    #[derive(Debug, Default)]
+    #[derive(Default)]
     pub struct InMemorySecrets {
-        entries: HashMap<Box<str>, Vec<u8>>,
+        entries: HashMap<Box<str>, Secret>,
+    }
+
+    impl fmt::Debug for InMemorySecrets {
+        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter
+                .debug_struct("InMemorySecrets")
+                .finish_non_exhaustive()
+        }
     }
 
     impl InMemorySecrets {
@@ -91,7 +99,7 @@ mod doubles {
 
         #[must_use]
         pub fn with(mut self, name: impl Into<Box<str>>, material: Vec<u8>) -> Self {
-            self.entries.insert(name.into(), material);
+            self.entries.insert(name.into(), Secret::new(material));
             self
         }
     }
@@ -101,7 +109,7 @@ mod doubles {
             Box::pin(async move {
                 self.entries
                     .get(reference.name())
-                    .map(|material| Secret::new(material.clone()))
+                    .map(|material| Secret::new(material.expose().to_vec()))
                     .ok_or_else(not_found)
             })
         }

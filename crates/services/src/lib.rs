@@ -1,7 +1,7 @@
 //! Service orchestration contracts for Uldren Core.
 //!
 //! Defines the runtime composition boundary that binds injected providers and
-//! typed service boundaries that run domain operations against them. Wires the
+//! low-level record storage orchestration. Wires the
 //! `contracts`, `domain`, `persistence`, `security`, and `synchronization`
 //! contracts together without naming any concrete runtime and initializes no
 //! global state. Deterministic implementations for tests are available under
@@ -13,17 +13,17 @@ pub mod runtime;
 pub mod service;
 
 pub use runtime::{RuntimeContext, RuntimeContextBuilder};
-pub use service::EntityService;
+pub use service::RecordService;
 
 #[cfg(any(test, feature = "test-support"))]
-pub use service::{StoreEntityService, UnavailableEntityService};
+pub use service::{StoreRecordService, UnavailableRecordService};
 
-const _: Option<&dyn EntityService> = None;
+const _: Option<&dyn RecordService> = None;
 
 #[cfg(test)]
 mod tests {
     use super::runtime::RuntimeContext;
-    use super::service::{EntityService, StoreEntityService, UnavailableEntityService};
+    use super::service::{RecordService, StoreRecordService, UnavailableRecordService};
     use std::future::Future;
     use std::sync::Arc;
     use std::task::{Context, Poll, Waker};
@@ -103,8 +103,8 @@ mod tests {
     }
 
     #[test]
-    fn store_entity_service_creates_and_fetches() {
-        let service = StoreEntityService::new(context());
+    fn store_record_service_creates_and_fetches() {
+        let service = StoreRecordService::new(context());
         let id = EntityId::parse("peer:node-01").expect("valid id");
 
         let revision = block_on(service.create(&id, b"state")).expect("create");
@@ -121,11 +121,11 @@ mod tests {
     }
 
     #[test]
-    fn entity_services_are_substitutable() {
+    fn record_services_are_substitutable() {
         let id = EntityId::parse("peer:node-02").expect("valid id");
-        let services: [Box<dyn EntityService>; 2] = [
-            Box::new(StoreEntityService::new(context())),
-            Box::new(UnavailableEntityService),
+        let services: [Box<dyn RecordService>; 2] = [
+            Box::new(StoreRecordService::new(context())),
+            Box::new(UnavailableRecordService),
         ];
         assert!(block_on(services[0].fetch(&id)).expect("fetch").is_none());
         assert_eq!(

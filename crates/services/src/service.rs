@@ -1,4 +1,4 @@
-//! Typed service orchestration boundaries.
+//! Record storage orchestration.
 
 use std::fmt;
 
@@ -6,11 +6,10 @@ use uldren_core_contracts::{BoxFuture, Error};
 use uldren_core_domain::{EntityId, Revision};
 use uldren_core_persistence::StoredRecord;
 
-/// Orchestrates entity lifecycle operations over the injected providers of a
-/// runtime context. Operations are typed; there is no generic string or byte
-/// dispatch across this boundary.
-pub trait EntityService: Send + Sync + fmt::Debug {
-    /// Creates a new entity from `bytes`, failing if `id` already exists.
+/// Low-level record storage operations. Payload bytes have no domain schema
+/// and this interface grants no authorization to product callers.
+pub trait RecordService: Send + Sync + fmt::Debug {
+    /// Creates a record only when `id` is absent.
     ///
     /// # Errors
     ///
@@ -33,26 +32,26 @@ pub trait EntityService: Send + Sync + fmt::Debug {
 
 #[cfg(any(test, feature = "test-support"))]
 mod doubles {
-    use super::{EntityId, EntityService, Error, Revision, StoredRecord};
+    use super::{EntityId, Error, RecordService, Revision, StoredRecord};
     use crate::runtime::RuntimeContext;
     use uldren_core_contracts::{BoxFuture, Category, LogLevel, LogRecord};
     use uldren_core_persistence::{Precondition, WriteOp};
 
-    /// [`EntityService`] backed by the injected store; logs each create through
+    /// [`RecordService`] backed by the injected store; logs each create through
     /// the injected logger.
     #[derive(Clone, Debug)]
-    pub struct StoreEntityService {
+    pub struct StoreRecordService {
         context: RuntimeContext,
     }
 
-    impl StoreEntityService {
+    impl StoreRecordService {
         #[must_use]
         pub fn new(context: RuntimeContext) -> Self {
             Self { context }
         }
     }
 
-    impl EntityService for StoreEntityService {
+    impl RecordService for StoreRecordService {
         fn create<'a>(
             &'a self,
             id: &'a EntityId,
@@ -61,7 +60,7 @@ mod doubles {
             Box::pin(async move {
                 self.context.logger().log(&LogRecord {
                     level: LogLevel::Info,
-                    message: "entity.create",
+                    message: "record.create",
                     fields: &[("id", id.as_str())],
                 });
                 let batch = [WriteOp::Put {
@@ -85,11 +84,11 @@ mod doubles {
         }
     }
 
-    /// [`EntityService`] that reports storage unavailable for every operation.
+    /// [`RecordService`] that reports storage unavailable for every operation.
     #[derive(Clone, Copy, Debug, Default)]
-    pub struct UnavailableEntityService;
+    pub struct UnavailableRecordService;
 
-    impl EntityService for UnavailableEntityService {
+    impl RecordService for UnavailableRecordService {
         fn create<'a>(
             &'a self,
             _id: &'a EntityId,
@@ -108,4 +107,4 @@ mod doubles {
 }
 
 #[cfg(any(test, feature = "test-support"))]
-pub use doubles::{StoreEntityService, UnavailableEntityService};
+pub use doubles::{StoreRecordService, UnavailableRecordService};

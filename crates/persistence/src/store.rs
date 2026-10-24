@@ -5,8 +5,8 @@ use std::fmt;
 use uldren_core_contracts::{BoxFuture, Error};
 use uldren_core_domain::{EntityId, Revision};
 
-/// A store-produced record. The [`Revision`] is assigned by the store; the
-/// fields are private so a record cannot be forged.
+/// A storage result whose revision is assigned or restored by the adapter.
+/// Construction validates representation, not persistence or authorization.
 ///
 /// ```compile_fail
 /// let _ = uldren_core_persistence::StoredRecord { revision: todo!(), bytes: vec![] };
@@ -18,6 +18,11 @@ pub struct StoredRecord {
 }
 
 impl StoredRecord {
+    #[must_use]
+    pub fn new(revision: Revision, bytes: Vec<u8>) -> Self {
+        Self { revision, bytes }
+    }
+
     #[must_use]
     pub fn revision(&self) -> Revision {
         self.revision
@@ -229,7 +234,6 @@ mod doubles {
     mod tests {
         use super::*;
         use std::future::Future;
-        use std::num::NonZeroU64;
         use std::task::{Context, Poll, Waker};
 
         fn complete<T>(future: impl Future<Output = T>) -> T {
@@ -255,7 +259,7 @@ mod doubles {
         }
 
         fn seed(store: &InMemoryStore, key: &EntityId, revision: u64) {
-            let revision = Revision::for_test(NonZeroU64::new(revision).expect("nonzero"));
+            let revision = Revision::try_from(revision).expect("nonzero");
             store.entries.lock().expect("lock").insert(
                 key.as_str().into(),
                 Entry {

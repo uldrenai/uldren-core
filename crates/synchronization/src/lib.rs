@@ -1,8 +1,7 @@
 //! Synchronization contracts for Uldren Core.
 //!
 //! Defines the bidirectional network transport and peer-session coordination
-//! boundaries. These are interface contracts; wire and handshake protocol
-//! behavior is defined elsewhere. Depends only on `contracts` and `domain`.
+//! boundaries. Depends only on `contracts` and `domain`.
 //! Deterministic implementations for tests are available under the non-default
 //! `test-support` feature.
 
