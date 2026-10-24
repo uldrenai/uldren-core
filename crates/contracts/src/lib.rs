@@ -93,5 +93,31 @@ mod tests {
         let frames: Vec<&str> = error.context().collect();
         assert_eq!(frames, ["loading profile", "handling request"]);
         assert_eq!(Category::NotFound.as_str(), "not_found");
+        assert_eq!(
+            error.to_string(),
+            "not_found: entity missing; loading profile; handling request"
+        );
+    }
+
+    #[test]
+    fn category_labels_are_stable_and_distinct() {
+        let labels = [
+            (Category::InvalidInput, "invalid_input"),
+            (Category::NotFound, "not_found"),
+            (Category::AlreadyExists, "already_exists"),
+            (Category::PermissionDenied, "permission_denied"),
+            (Category::Unauthenticated, "unauthenticated"),
+            (Category::Conflict, "conflict"),
+            (Category::ResourceExhausted, "resource_exhausted"),
+            (Category::Unavailable, "unavailable"),
+            (Category::Timeout, "timeout"),
+            (Category::Cancelled, "cancelled"),
+            (Category::DataCorruption, "data_corruption"),
+            (Category::Internal, "internal"),
+        ];
+        for (category, label) in labels {
+            assert_eq!(category.as_str(), label);
+            assert_eq!(category.to_string(), label);
+        }
     }
 }

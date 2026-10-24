@@ -24,7 +24,7 @@ const _: Option<&dyn RecordService> = None;
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
-    use super::runtime::RuntimeContext;
+    use super::runtime::{RuntimeContext, RuntimeContextBuilder};
     use super::service::{RecordService, StoreRecordService, UnavailableRecordService};
     use std::future::Future;
     use std::sync::Arc;
@@ -67,6 +67,76 @@ mod tests {
             .build()
             .expect_err("no providers set");
         assert_eq!(error.category(), Category::InvalidInput);
+    }
+
+    #[test]
+    fn builder_identifies_each_missing_dependency() {
+        type ProviderSetter = fn(RuntimeContextBuilder) -> RuntimeContextBuilder;
+        let providers: [(&str, ProviderSetter); 9] = [
+            ("clock", |builder| {
+                builder.clock(Arc::new(FixedClock::new(UnixNanos::from_nanos(42))))
+            }),
+            ("logger", |builder| builder.logger(Arc::new(NoopLogger))),
+            ("telemetry", |builder| {
+                builder.telemetry(Arc::new(DisabledTelemetry))
+            }),
+            ("store", |builder| {
+                builder.store(Arc::new(InMemoryStore::new()))
+            }),
+            ("secrets", |builder| builder.secrets(Arc::new(EmptySecrets))),
+            ("authorizer", |builder| {
+                builder.authorizer(Arc::new(DenyAll))
+            }),
+            ("capabilities", |builder| {
+                builder.capabilities(Arc::new(EmptyCapabilities))
+            }),
+            ("transport", |builder| {
+                builder.transport(Arc::new(LoopbackTransport::new()))
+            }),
+            ("sessions", |builder| {
+                builder.sessions(Arc::new(InMemorySessions::new()))
+            }),
+        ];
+        let mut builder = RuntimeContext::builder();
+        for (name, set_provider) in providers {
+            let error = builder.clone().build().expect_err("missing provider");
+            assert_eq!(error.category(), Category::InvalidInput);
+            assert_eq!(error.message(), format!("missing provider: {name}"));
+            builder = set_provider(builder);
+        }
+        assert_eq!(format!("{builder:?}"), "RuntimeContextBuilder { .. }");
+        let runtime = builder.build().expect("all providers supplied");
+        assert_eq!(format!("{runtime:?}"), "RuntimeContext { .. }");
+        assert_eq!(runtime.clock().now().as_nanos(), 42);
+        assert!(!runtime.telemetry().is_enabled());
+        let subject = EntityId::parse("peer:test").expect("valid subject");
+        let capability = uldren_core_security::Capability::new("read");
+        assert!(
+            !runtime
+                .authorizer()
+                .authorize(&subject, &capability)
+                .is_allowed()
+        );
+        assert!(
+            runtime
+                .capabilities()
+                .supported_capabilities()
+                .expect("capabilities")
+                .is_empty()
+        );
+        let reference = uldren_core_security::SecretRef::new("missing");
+        assert_eq!(
+            block_on(runtime.secrets().secret(&reference))
+                .expect_err("absent")
+                .category(),
+            Category::NotFound
+        );
+        let peer = uldren_core_synchronization::PeerId::new(subject);
+        let session = block_on(runtime.sessions().open(&peer)).expect("open session");
+        block_on(runtime.sessions().close(session)).expect("close session");
+        let _ = runtime.transport();
+        let _ = runtime.logger();
+        let _ = runtime.store();
     }
 
     #[test]

@@ -62,6 +62,10 @@ rejects wildcard registry dependencies. Unpublished workspace path dependencies 
 version; the wildcard exception applies to those source paths, not registry versions. Unknown Git
 sources remain denied.
 
+The fuzz-only `libfuzzer-sys` 0.4.13 dependency declares `(MIT OR Apache-2.0) AND NCSA`. Its NCSA
+permission is scoped to that exact crate version in `deny.toml`; the general license allow-list is
+unchanged. The fuzz harness is not part of the production workspace or artifacts.
+
 cargo-fuzz does not accept `--locked`: the runner first verifies locked offline metadata, runs
 without network access, and rejects any change to its committed lockfile. `just tools-install`
 fetches that lockfile's crates.
