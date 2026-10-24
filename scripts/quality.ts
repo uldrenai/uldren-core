@@ -51,6 +51,7 @@ export class CoverageGate {
 
   check(files: CoverageFile[]): void {
     const totals = new Map<string, { lines: Metric; branches: Metric }>();
+    const failures: string[] = [];
     for (const file of files) {
       const component = file.filename.replaceAll("\\", "/").match(/(?:^|\/)crates\/([^/]+)\/src\//)
         ?.[1];
@@ -85,15 +86,17 @@ export class CoverageGate {
           throw new Error(`invalid coverage floor: ${component} ${metric}`);
         }
         if (metric === "branches" && floor.branches > 0 && value.count === 0) {
-          throw new Error(`no branch coverage data: ${component}`);
+          failures.push(`no branch coverage data: ${component}`);
+          continue;
         }
         const percent = value.count === 0 ? 100 : value.covered * 100 / value.count;
         console.log(`${component} ${metric}: ${percent.toFixed(2)}% (floor ${floor[metric]}%)`);
         if (percent < floor[metric]) {
-          throw new Error(`coverage floor failed: ${component} ${metric}`);
+          failures.push(`coverage floor failed: ${component} ${metric}`);
         }
       }
     }
+    if (failures.length) throw new Error(failures.join("; "));
   }
 }
 
@@ -169,6 +172,7 @@ export class QualityTools {
         "tests/contract/production-adapters/Cargo.toml",
         "--locked",
         "--branch",
+        "--no-rustc-wrapper",
         "--no-report",
       ]);
       await this.tool("cargo-llvm-cov", [
