@@ -107,7 +107,7 @@ class EnforcementSmoke {
       "--default-features",
       "--release-type",
       "patch",
-    ], /inherent_method_missing|major.*required|semver requires/);
+    ], /inherent_method_missing/);
     await Deno.writeTextFile(identifier, original);
     console.log("PASS: semver detects a removed public method");
 
@@ -117,7 +117,11 @@ class EnforcementSmoke {
       "let result = EntityId::parse(input);",
       'panic!("quality fuzz failure fixture");\n    let result = EntityId::parse(input);',
     );
-    await this.command(checkout, ["just", "fuzz-smoke"], /quality fuzz failure fixture/);
+    await this.command(
+      checkout,
+      ["just", "fuzz-smoke"],
+      /panicked at[\s\S]*quality fuzz failure fixture/,
+    );
     console.log("PASS: fuzzing propagates a target crash");
   }
 }

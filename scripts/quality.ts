@@ -240,8 +240,10 @@ export class QualityTools {
           "deny.toml",
           "fuzz",
         ], true);
-        if (changed.trim()) await this.runner.run(["just", "tooling-smoke"]);
-        else console.log("quality tooling unchanged; enforcement smoke runs on schedule");
+        if (changed.trim()) {
+          await this.runner.run(["just", "fuzz-smoke"]);
+          await this.runner.run(["just", "tooling-smoke"]);
+        } else console.log("quality tooling unchanged; enforcement smoke runs on schedule");
         return;
       }
       case "fuzz": {
