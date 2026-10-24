@@ -3,7 +3,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list --unsorted
 
-ci: fmt-check lint test
+ci: fmt-check lint test tooling-test
 
 fmt:
     deno fmt
@@ -11,6 +11,7 @@ fmt:
     deno run --frozen --allow-read --allow-write scripts/format-json.ts write
     cargo fmt --all
     cargo fmt --manifest-path tests/contract/production-adapters/Cargo.toml
+    cargo fmt --manifest-path fuzz/Cargo.toml
 
 fmt-check:
     deno fmt --check
@@ -18,6 +19,7 @@ fmt-check:
     deno run --frozen --allow-read scripts/format-json.ts check
     cargo fmt --all --check
     cargo fmt --manifest-path tests/contract/production-adapters/Cargo.toml --check
+    cargo fmt --manifest-path fuzz/Cargo.toml --check
 
 lint:
     cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
@@ -30,16 +32,35 @@ test:
 test-integration:
     if [ -n "$(find crates -mindepth 3 -maxdepth 3 -type f -path '*/tests/*.rs' -print -quit 2>/dev/null)" ]; then cargo test --workspace --test '*' --locked; else echo "no crate integration test targets"; fi
 
+tools-install:
+    deno run --frozen --allow-read --allow-write --allow-env --allow-run scripts/quality.ts install
+
+tooling-test:
+    deno check --frozen scripts/quality.ts scripts/quality.test.ts scripts/quality-smoke.ts
+    deno lint scripts/quality.ts scripts/quality.test.ts scripts/quality-smoke.ts
+    deno test --frozen --allow-read --allow-env scripts/quality.test.ts
+
+tooling-smoke:
+    deno run --frozen --allow-read --allow-write --allow-env --allow-run scripts/quality-smoke.ts
+
+tooling-changes baseline:
+    deno run --frozen --allow-read --allow-env --allow-run scripts/quality.ts smoke-if-changed "{{baseline}}"
+
 coverage:
-    cargo llvm-cov --workspace --locked --fail-under-lines 0 --lcov --output-path target/llvm-cov/lcov.info
+    deno run --frozen --allow-read --allow-write --allow-env --allow-run scripts/quality.ts coverage
 
 deny:
-    cargo deny --workspace check
+    deno run --frozen --allow-read --allow-write --allow-env --allow-run scripts/quality.ts deny
 
 machete:
-    cargo machete
+    deno run --frozen --allow-read --allow-env --allow-run scripts/quality.ts machete
 
-semver:
-    cargo semver-checks check-release --workspace --baseline-rev main
+semver baseline="origin/main":
+    deno run --frozen --allow-read --allow-env --allow-run scripts/quality.ts semver "{{baseline}}"
 
-all: ci deny machete coverage semver test-integration
+fuzz-smoke:
+    deno run --frozen --allow-read --allow-write --allow-env --allow-run scripts/quality.ts fuzz
+
+quality: deny machete coverage
+
+all: ci quality semver fuzz-smoke tooling-smoke test-integration

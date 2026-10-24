@@ -7,18 +7,41 @@ rather than reproducing their logic.
 
 Fast, non-mutating pull-request gate:
 
-- `just ci` runs `just fmt-check`, `just lint`, and `just test`.
+- `just ci` runs `just fmt-check`, `just lint`, `just test`, and `just tooling-test`.
 - `just fmt` applies formatting in place; `just fmt-check` verifies it.
-- `just lint` runs Clippy across all targets with warnings denied.
-- `just test` runs the workspace unit and documentation tests.
+- `just lint` runs Clippy across all workspace targets/features and the isolated production
+  consumer, with warnings denied.
+- `just test` runs the workspace unit/documentation tests and isolated production consumer tests.
+- `just tooling-test` checks tool-version enforcement, error propagation, and coverage policy logic.
 
-Explicit gates, invoked on demand or on a schedule outside the fast pull-request path:
+Separate pull-request quality checks:
 
-- `just coverage` produces workspace line coverage and enforces the configured floor.
+- `just tools-install` installs exact Cargo-tool versions into `target/quality-tools` and installs
+  the dated nightly from `tooling/quality.json`. It does not change the default Rust toolchain.
+- `just coverage` produces `target/quality/coverage.json` and enforces each component's line and
+  branch floors from `tooling/quality.json`.
 - `just deny` runs the dependency advisory, ban, source, and license policy.
 - `just machete` reports unused dependencies.
-- `just semver` reports public-surface compatibility against the `main` baseline.
-- `just all` runs `just ci` followed by the explicit gates and `just test-integration`.
+- `just quality` runs dependency policy, unused-dependency detection, and component coverage.
+- `just semver <revision>` checks default-feature public surfaces, including unpublished crates,
+  against an exact resolved baseline commit. The default is `origin/main`; CI passes the
+  pull-request base SHA or pre-push SHA. Patch-compatible comparison provides a diagnostic even at
+  version 0.0.0; it does not assert that the API is released or immutable.
+
+Explicit and weekly diagnostics:
+
+- `just fuzz-smoke` runs 1,000 seeded parser inputs with address sanitization on the dated nightly.
+- `just tooling-smoke` runs real tools against intentional defects in temporary repository copies.
+  It prints the evidence directory, preserves logs, and never mutates the working source.
+- `just tooling-changes <revision>` runs enforcement smoke when quality configuration or scripts
+  differ from the baseline. Pull requests use this check to verify changes to the gates themselves.
+- `just all` runs the fast and quality gates, semver, fuzz smoke, enforcement smoke, and integration
+  diagnostics. These deeper operations are excluded from the fast gate.
+
+The runner refuses mismatched tool versions. `ULDREN_QUALITY_TOOLS` can select an absolute isolated
+installation prefix. Cargo's `CARGO_TARGET_DIR` remains available for build output. The nightly is
+used only for branch coverage and fuzzing; normal source builds and linting use
+`rust-toolchain.toml`.
 
 ## Rust tooling
 
@@ -32,6 +55,12 @@ The Rust workspace configures:
 - `cargo-llvm-cov` for deterministic workspace coverage with an enforced floor.
 - `cargo-semver-checks` for public-surface compatibility diagnostics.
 - `cargo-machete` for unused dependencies.
+- `cargo-fuzz` for the EntityId parser's grammar and accepted-value round-trip invariants.
+
+The root, isolated consumer, and fuzz dependency graphs all pass cargo-deny. cargo-fuzz does not
+accept `--locked`: the runner first verifies locked offline metadata, runs without network access,
+and rejects any change to its committed lockfile. `just tools-install` fetches that lockfile's
+crates.
 
 Configuration files are authoritative for enabled tools. The Rust edition and minimum supported
 version remain identical across Cargo, `rustfmt`, `clippy`, the toolchain file, and CI. The

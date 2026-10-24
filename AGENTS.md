@@ -11,8 +11,9 @@ file is corrected.
 - `just test-integration` runs cross-boundary integration tests.
 - `just all` runs `ci` plus expensive local diagnostics.
 
-Continuous integration invokes these recipes rather than reproducing their logic. The recipes
-activate their Rust commands when `Cargo.toml` is present. See `docs/TOOLING.md`.
+Continuous integration invokes these recipes rather than reproducing their logic. Separate PR
+quality checks run component coverage, dependency policy, and public API compatibility. Install the
+pinned tools with `just tools-install`; see `docs/TOOLING.md`.
 
 ## Boundaries
 
