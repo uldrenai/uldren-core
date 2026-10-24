@@ -8,5 +8,21 @@ repository.workspace = true
 license-file.workspace = true
 publish = false
 
+[dependencies]
+uldren-core-contracts = { path = "../contracts" }
+uldren-core-domain = { path = "../domain" }
+uldren-core-persistence = { path = "../persistence" }
+uldren-core-security = { path = "../security" }
+uldren-core-synchronization = { path = "../synchronization" }
+
+[dev-dependencies]
+uldren-core-contracts = { path = "../contracts", features = ["test-support"] }
+uldren-core-persistence = { path = "../persistence", features = ["test-support"] }
+uldren-core-security = { path = "../security", features = ["test-support"] }
+uldren-core-synchronization = { path = "../synchronization", features = ["test-support"] }
+
 [lints]
 workspace = true
+
+[features]
+test-support = []

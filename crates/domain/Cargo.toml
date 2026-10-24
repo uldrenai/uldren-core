@@ -8,5 +8,11 @@ repository.workspace = true
 license-file.workspace = true
 publish = false
 
+[dependencies]
+uldren-core-contracts = { path = "../contracts" }
+
 [lints]
 workspace = true
+
+[features]
+test-support = []
