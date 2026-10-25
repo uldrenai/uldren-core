@@ -24,10 +24,13 @@ Uldren Core uses native Rust test runners with the following required layers:
   and 85% branches. Other executable crates enforce an initial measured line floor; branch counts
   are reported without an additional threshold. The type-only UniFFI crate is explicitly exempt
   until executable code appears. Missing component data or an unconfigured new crate fails.
-  Branchless components report N/A, not 100%; a report with no branch instrumentation fails. Cargo
-  identifies each suite's exact test binaries. The nightly's LLVM tools combine their profiles and
-  mappings before computing production-source metrics, including the isolated consumer's Core
-  dependencies.
+  `expectedBranchlessCrates` explicitly identifies components expected to have zero instrumentable
+  branches. They report N/A, not 100%, and retain their line floors. Any branches appearing in such
+  a component fail the gate until its stale expectation is removed; the configured branch floor then
+  applies. Unexpected zero-branch components fail, as does a report with no branch data when a
+  positive branch floor is configured. Cargo identifies each suite's exact test binaries. The
+  nightly's LLVM tools combine their profiles and mappings before computing production-source
+  metrics, including the isolated consumer's Core dependencies.
 - `just tooling-smoke` proves actual formatter, Clippy, license policy, unused-dependency, coverage,
   compatibility, and fuzz failures. Each mutation is confined to a temporary copy and must fail for
   the expected reason. Infrastructure errors do not count as successful negative evidence.

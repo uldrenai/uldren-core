@@ -38,6 +38,7 @@ interface Configuration {
   nightly: string;
   coverage: Record<string, Floor>;
   nonExecutableCrates: string[];
+  expectedBranchlessCrates: string[];
 }
 
 interface Metric {
@@ -84,7 +85,20 @@ export class CoverageArtifacts {
 }
 
 export class CoverageGate {
-  constructor(readonly floors: Record<string, Floor>, readonly nonExecutable: string[]) {}
+  constructor(
+    readonly floors: Record<string, Floor>,
+    readonly nonExecutable: string[],
+    readonly expectedBranchless: string[],
+  ) {
+    if (new Set(expectedBranchless).size !== expectedBranchless.length) {
+      throw new Error("duplicate branchless expectation");
+    }
+    for (const component of expectedBranchless) {
+      if (!Object.hasOwn(floors, component)) {
+        throw new Error(`unknown branchless component: ${component}`);
+      }
+    }
+  }
 
   check(files: CoverageFile[]): void {
     const totals = new Map<string, { lines: Metric; branches: Metric }>();
@@ -122,6 +136,15 @@ export class CoverageGate {
     for (const [component, floor] of Object.entries(this.floors)) {
       const total = totals.get(component);
       if (!total || total.lines.count === 0) throw new Error(`no coverage data: ${component}`);
+      const expectedBranchless = this.expectedBranchless.includes(component);
+      if (expectedBranchless && total.branches.count > 0) {
+        throw new Error(
+          `stale branchless expectation: ${component}; remove it to enforce the floor`,
+        );
+      }
+      if (!expectedBranchless && total.branches.count === 0) {
+        throw new Error(`unexpected zero branch count: ${component}`);
+      }
       for (const metric of ["lines", "branches"] as const) {
         const value = total[metric];
         if (!Number.isFinite(floor[metric]) || floor[metric] < 0 || floor[metric] > 100) {
@@ -251,7 +274,11 @@ export class QualityTools {
       else Deno.env.set("CARGO_LLVM_COV_BUILD_DIR", previousBuild);
     }
     const report = JSON.parse(await Deno.readTextFile("target/quality/coverage.json"));
-    new CoverageGate(this.config.coverage, this.config.nonExecutableCrates).check(
+    new CoverageGate(
+      this.config.coverage,
+      this.config.nonExecutableCrates,
+      this.config.expectedBranchlessCrates,
+    ).check(
       report.data.flatMap((entry: { files: CoverageFile[] }) => entry.files),
     );
   }

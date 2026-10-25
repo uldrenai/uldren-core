@@ -19,7 +19,9 @@ Separate pull-request quality checks:
 - `just tools-install` installs exact Cargo-tool versions into `target/quality-tools` and installs
   the dated nightly from `tooling/quality.json`. It does not change the default Rust toolchain.
 - `just coverage` produces `target/quality/coverage.json` and enforces each component's line and
-  branch floors from `tooling/quality.json`.
+  branch floors from `tooling/quality.json`. Its `expectedBranchlessCrates` entries assert zero
+  instrumentable branches, not a threshold exemption. A positive branch count requires removing the
+  stale entry; the configured floor then applies. Zero branches without an expectation fail.
 - `just deny` runs the dependency advisory, ban, source, and license policy.
 - `just machete` reports unused dependencies.
 - `just quality` runs dependency policy, unused-dependency detection, and component coverage.

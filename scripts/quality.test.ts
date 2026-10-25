@@ -21,7 +21,7 @@ const file = (lines: number, branches: number) => ({
 });
 
 Deno.test("coverage enforces exact component boundaries", () => {
-  const gate = new CoverageGate({ domain: { lines: 90, branches: 85 } }, []);
+  const gate = new CoverageGate({ domain: { lines: 90, branches: 85 } }, [], []);
   gate.check([file(90, 85)]);
   rejects(() => gate.check([file(89, 100)]), "domain lines");
   rejects(() => gate.check([file(100, 84)]), "domain branches");
@@ -31,7 +31,8 @@ Deno.test("coverage enforces exact component boundaries", () => {
   noBranches.summary.branches.count = 0;
   rejects(() => gate.check([noBranches]), "no branch coverage data");
   rejects(
-    () => new CoverageGate({ domain: { lines: NaN, branches: 85 } }, []).check([file(100, 100)]),
+    () =>
+      new CoverageGate({ domain: { lines: NaN, branches: 85 } }, [], []).check([file(100, 100)]),
     "invalid coverage floor",
   );
   rejects(
@@ -45,16 +46,80 @@ Deno.test("coverage enforces exact component boundaries", () => {
 });
 
 Deno.test("branchless components are explicit without accepting missing instrumentation", () => {
-  const gate = new CoverageGate({
-    domain: { lines: 90, branches: 85 },
-    security: { lines: 90, branches: 85 },
-  }, []);
+  const gate = new CoverageGate(
+    {
+      domain: { lines: 90, branches: 85 },
+      security: { lines: 90, branches: 85 },
+    },
+    [],
+    ["security"],
+  );
   const security = {
     filename: "crates/security/src/secret.rs",
     summary: { lines: { count: 10, covered: 10 }, branches: { count: 0, covered: 0 } },
   };
   gate.check([file(100, 100), security]);
   rejects(() => gate.check([file(100, 84), security]), "domain branches");
+  const uncovered = structuredClone(security);
+  uncovered.summary.lines.covered = 8;
+  rejects(() => gate.check([file(100, 100), uncovered]), "security lines");
+  rejects(() => gate.check([file(100, 100)]), "no coverage data: security");
+  const noBranches = file(100, 0);
+  noBranches.summary.branches.count = 0;
+  rejects(() => gate.check([noBranches, security]), "no branch coverage data");
+  rejects(
+    () => new CoverageGate(gate.floors, [], []).check([file(100, 100), security]),
+    "unexpected zero branch count: security",
+  );
+});
+
+Deno.test("new branches require removing the expectation and meeting the retained floor", () => {
+  const floors = {
+    domain: { lines: 90, branches: 85 },
+    security: { lines: 90, branches: 85 },
+  };
+  const security = { ...file(100, 84), filename: "crates/security/src/secret.rs" };
+  const gate = new CoverageGate(floors, [], ["security"]);
+  rejects(() => gate.check([file(100, 100), security]), "stale branchless expectation: security");
+  security.summary.branches.covered = 100;
+  rejects(() => gate.check([file(100, 100), security]), "stale branchless expectation: security");
+  const enforced = new CoverageGate(floors, [], []);
+  enforced.check([file(100, 100), security]);
+  security.summary.branches.covered = 84;
+  rejects(() => enforced.check([file(100, 100), security]), "security branches");
+  const split = { ...file(100, 0), filename: "crates/security/src/another.rs" };
+  split.summary.branches.count = 0;
+  rejects(
+    () => gate.check([file(100, 100), split, security]),
+    "stale branchless expectation: security",
+  );
+});
+
+Deno.test("zero branch floors do not bypass branchless expectations", () => {
+  const floors = { domain: { lines: 80, branches: 0 } };
+  const gate = new CoverageGate(floors, [], ["domain"]);
+  rejects(() => gate.check([file(100, 100)]), "stale branchless expectation: domain");
+  const noBranches = file(100, 0);
+  noBranches.summary.branches.count = 0;
+  gate.check([noBranches]);
+  rejects(
+    () => new CoverageGate(floors, [], []).check([noBranches]),
+    "unexpected zero branch count: domain",
+  );
+});
+
+Deno.test("branchless expectations reject unknown and duplicate components", () => {
+  const floors = { domain: { lines: 90, branches: 85 } };
+  rejects(() => new CoverageGate(floors, [], ["typo"]), "unknown branchless component: typo");
+  rejects(
+    () => new CoverageGate(floors, [], ["toString"]),
+    "unknown branchless component: toString",
+  );
+  rejects(() => new CoverageGate(floors, ["uniffi"], ["uniffi"]), "unknown branchless component");
+  rejects(
+    () => new CoverageGate(floors, [], ["domain", "domain"]),
+    "duplicate branchless expectation",
+  );
 });
 
 Deno.test("coverage binary selection accepts only exact Cargo targets", () => {

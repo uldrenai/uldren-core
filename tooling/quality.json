@@ -15,5 +15,12 @@
     "services": { "lines": 80, "branches": 0 },
     "synchronization": { "lines": 80, "branches": 0 }
   },
-  "nonExecutableCrates": ["uniffi"]
+  "nonExecutableCrates": ["uniffi"],
+  "expectedBranchlessCrates": [
+    "contracts",
+    "persistence",
+    "security",
+    "services",
+    "synchronization"
+  ]
 }
