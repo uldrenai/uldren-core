@@ -26,6 +26,7 @@ pub trait TelemetrySink: Send + Sync + fmt::Debug {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod doubles {
     use super::{TelemetryEvent, TelemetrySink};
     use std::sync::atomic::{AtomicUsize, Ordering};

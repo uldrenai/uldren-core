@@ -88,6 +88,7 @@ pub trait Store: Send + Sync + fmt::Debug {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod doubles {
     use super::{Precondition, Store, StoredRecord, WriteOp};
     use std::collections::HashMap;

@@ -6,6 +6,7 @@
 //! available under the non-default `test-support` feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod authorization;
 pub mod discovery;
@@ -27,6 +28,7 @@ const _: Option<&dyn Authorizer> = None;
 const _: Option<&dyn CapabilityDiscovery> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::authorization::{Authorizer, Capability, Decision, DenyAll, GrantList};
     use super::secret::{EmptySecrets, InMemorySecrets, SecretProvider, SecretRef};
@@ -99,6 +101,7 @@ mod tests {
             authorizers[0].authorize(&subject, &capability),
             Decision::Allow
         );
+        assert!(authorizers[0].authorize(&subject, &capability).is_allowed());
         assert_eq!(
             authorizers[1].authorize(&subject, &capability),
             Decision::Deny

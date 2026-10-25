@@ -39,6 +39,7 @@ impl TryFrom<u64> for Revision {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::Revision;
 

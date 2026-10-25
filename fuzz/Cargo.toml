@@ -1,0 +1,26 @@
+[package]
+name = "uldren-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.97"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+uldren-core-domain = { path = "../crates/domain" }
+
+[[bin]]
+name = "entity_id"
+path = "fuzz_targets/entity_id.rs"
+test = false
+doc = false
+bench = false
+
+[lints.rust]
+unsafe_code = "forbid"

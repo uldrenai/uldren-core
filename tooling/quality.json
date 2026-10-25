@@ -1,0 +1,26 @@
+{
+  "tools": {
+    "cargo-deny": "0.20.2",
+    "cargo-fuzz": "0.13.2",
+    "cargo-llvm-cov": "0.9.1",
+    "cargo-machete": "0.9.2",
+    "cargo-semver-checks": "0.51.0"
+  },
+  "nightly": "nightly-2026-10-24",
+  "coverage": {
+    "contracts": { "lines": 80, "branches": 0 },
+    "domain": { "lines": 90, "branches": 85 },
+    "persistence": { "lines": 80, "branches": 0 },
+    "security": { "lines": 90, "branches": 85 },
+    "services": { "lines": 80, "branches": 0 },
+    "synchronization": { "lines": 80, "branches": 0 }
+  },
+  "nonExecutableCrates": ["uniffi"],
+  "expectedBranchlessCrates": [
+    "contracts",
+    "persistence",
+    "security",
+    "services",
+    "synchronization"
+  ]
+}

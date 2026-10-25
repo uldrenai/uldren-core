@@ -6,6 +6,7 @@
 //! available under the non-default `test-support` feature.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod store;
 
@@ -17,6 +18,7 @@ pub use store::{InMemoryStore, UnavailableStore};
 const _: Option<&dyn Store> = None;
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::store::{InMemoryStore, Precondition, Store, UnavailableStore, WriteOp};
     use std::future::Future;
